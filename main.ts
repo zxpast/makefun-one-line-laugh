@@ -12,64 +12,51 @@
 // 1. One funny line within 200 characters — a single sentence, 94
 //    characters, plain text, no numbers, no quote, no setup that
 //    explains anything.
-// 2. Real surprise at the end — nothing before the last five words
-//    hints at a shrimp, or at rent. The setup is an ordinary
-//    wellness purchase; the final simile ("like a shrimp paying
-//    rent") turns it into an absurd image that still makes sense:
-//    the narrator is curved over exactly like a shrimp, and the
-//    rent makes the shrimp a put-upon adult with bills.
-// 3. An everyday truth people recognise — standing desks are bought
-//    to fix posture, and the buyer hunches anyway. The desk did
-//    not change the person; it only changed the height at which
-//    they hunch.
-// 4. Economical — 20 words, setup:punchline 15:5 (3:1). Every
-//    word earns its place: "hunch" is the shrimp's own verb,
-//    doing the work of a whole clause, and the punchline is five
-//    words with nothing after it to explain the joke.
-// 5. Fresh — "a shrimp paying rent" is a new collision of two
-//    concrete images (curved sea creature + monthly bill). It is
-//    not the saturated "raccoon with a mortgage" (ranks 1, 2 and 6
-//    of the sibling Laugh Sprint final), not the field cliche
-//    "you're welcome", and it shares no wording with any rival
-//    line in the Laugh Sprint final pool.
-import * as fs from "node:fs";
-import * as path from "node:path";
+// 2. The twist sits in the last words — nothing before "like a shrimp
+//    paying rent" hints at a shrimp, or at rent. The setup is an
+//    ordinary wellness purchase; the final simile turns it into an
+//    absurd image that still makes sense: the narrator is curved over
+//    exactly like a shrimp, and the rent makes the shrimp a put-upon
+//    adult with bills.
+// 3. The narrator is the butt of the joke (self-own) — he bought the
+//    desk to fix his posture and hunches anyway. The desk did not
+//    change the person; it only changed the height at which he hunches.
+// 4. Economical — 20 words, setup:punchline 15:5 (3:1). Every word
+//    earns its place: "hunch" is the shrimp's own verb, doing the work
+//    of a whole clause, and the punchline is five words with nothing
+//    after it to explain the joke.
+// 5. Fresh — "a shrimp paying rent" collides two concrete images
+//    (curved sea creature + monthly bill) that no one else in the
+//    field is likely to have paired.
 
-// The single line this entry sends, and nothing else.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+
 const LINE =
-  "I bought a standing desk to fix my posture, and now I hunch over it like a shrimp paying rent.";
+  'I bought a standing desk to fix my posture, and now I hunch over it like a shrimp paying rent.';
 
-// Gate: /output/entry.txt must be UTF-8 text of 1 to 200 characters,
-// counted as Unicode code points, not only white space, and exactly
-// one sentence. Any violation throws before anything is written, so
-// a bad entry can never be graded.
-const codePoints = [...LINE].length;
-if (codePoints < 1 || codePoints > 200) {
-  throw new Error(`line is ${codePoints} code points, outside the 1-200 gate`);
-}
-if (LINE.trim().length === 0) {
-  throw new Error("line must not be whitespace-only");
-}
-if (LINE.trim() !== LINE) {
-  throw new Error("line must not start or end with whitespace");
-}
-if (LINE.split(/[.!?]/).filter((s) => s.trim().length > 0).length !== 1) {
-  throw new Error("line must be exactly one sentence");
+const DEST = join(OUTPUT_DIR, 'entry.txt');
+
+mkdirSync(OUTPUT_DIR, { recursive: true });
+try {
+  writeFileSync(DEST, LINE + '\n', 'utf8');
+} catch (err) {
+  console.error(`entry.txt could not be written to ${OUTPUT_DIR}: ${(err as Error).message}`);
+  process.exit(1);
 }
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-const outPath = path.join(outDir, "entry.txt");
-fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(outPath, LINE, "utf8");
-
-// Read-back check: the file on disk must be byte-identical to the
-// gated string, so a partial or altered write is caught here.
-const written = fs.readFileSync(outPath, "utf8");
-if (written !== LINE) {
-  throw new Error("entry.txt on disk does not match the line");
+// Read the file back: the gate reads exactly these bytes, so a short or
+// mangled write must fail here rather than ship a broken entry.
+let back: string;
+try {
+  back = readFileSync(DEST, 'utf8');
+} catch (err) {
+  console.error(`entry.txt could not be read back from ${DEST}: ${(err as Error).message}`);
+  process.exit(1);
 }
-
-console.log(LINE);
-console.log(
-  `(${codePoints} code points, ${Buffer.byteLength(LINE, "utf8")} bytes)`,
-);
+if (back !== LINE + '\n') {
+  console.error(`entry.txt read back does not match the entry line (got ${back.length} bytes)`);
+  process.exit(1);
+}
